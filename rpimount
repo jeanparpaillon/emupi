@@ -1,0 +1,62 @@
+#!/bin/bash
+
+set -e
+
+mountpoint=
+fdisk=/sbin/sfdisk
+
+function _cleanup {
+    if test -n "$mountpoint"; then
+	mount | grep -q $mountpoint/boot && \
+	    $su umount $mountpoint/boot
+	mount | grep -q $mountpoint && \
+	    $su umount $mountpoint
+    fi
+}
+
+function _usage {
+    echo "Usage: $0 /path/to/img mountpoint"
+}
+
+function _offset {
+    part=$1
+    blocks=$(LANG=C $fdisk -l $image | tail -n +$(( 8+part )) | head -1 | awk -e '{ print $2 }')
+    echo $(( blocks*512 ))
+}
+
+function _mount {
+    i=$1
+    $su mount -o offset=$(_offset 2),ro -t ext4 $image $mountpoint
+    $su mount -o offset=$(_offset 1),ro -t vfat $image $mountpoint/boot
+}
+
+trap _cleanup EXIT
+
+if test $# -lt 2; then
+    _usage
+    exit 1
+fi
+
+if test ! -e $1; then
+    echo "E: Can not find image file: "$1
+    exit 1
+fi
+image=$1
+
+if test ! -d $2; then
+    echo "E: Please create mountpoint with 'mkdir -p $2'"
+    exit 1
+fi
+mountpoint=$(cd $2 && pwd)
+
+if test  `id -u` = 0; then
+    su=""
+else
+    su="sudo "
+fi
+
+_mount
+
+/bin/bash
+
+exit 0

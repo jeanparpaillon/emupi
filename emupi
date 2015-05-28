@@ -1,0 +1,65 @@
+#!/bin/bash -e
+
+tmpdir=$(mktemp -d)
+
+function _cleanup {
+    mount | grep $tmpdir/boot && umount $tmpdir/boot || true
+    rm -rf $tmpdir
+}
+
+function _usage {
+    echo "Usage: $0 [-r] /path/to/image"
+}
+
+function _mount1 {
+    mkdir -p $tmpdir/boot
+    start=$(LANG=C sfdisk -l $image | tail -n +9 | head -1 | awk -e '{ print $2 }')
+    mount -o offset=$(( start*512 )),ro -t vfat $image $tmpdir/boot > /dev/null 2>&1 || \
+	echo "E: Error mounting /boot partition"
+}
+
+trap _cleanup EXIT
+
+if test `id -u` != 0; then
+    sudo $0 $*
+    exit 0
+fi
+
+if test $# -lt 1; then
+    _usage
+fi
+
+opts=""
+while getopts ":r" opt; do
+    case $opt in
+	r)
+	    opts="$opts init=/bin/bash"
+	    shift $((OPTIND-1))
+	    ;;
+	h)
+	    _usage
+	    exit 0
+	    ;;
+	\?)
+	    _usage
+	    exit 1
+	    ;;
+    esac
+done
+
+image=$1
+if test ! -e $image; then
+    echo "E: unknown image file " $image
+fi
+
+_mount1
+
+qemu-system-arm \
+    -kernel $tmpdir/boot/kernel.img \
+    -cpu arm1176 \
+    -m 256 \
+    -M versatilepb \
+    -no-reboot \
+    -serial stdio \
+    -append "root=/dev/sda2 panic=1 rootfstype=ext4 rw $opts" \
+    -hda $image
