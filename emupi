@@ -2,7 +2,12 @@
 
 basedir=$(cd $(dirname $0) && pwd)
 tmpdir=$(mktemp -d)
-qemu=/opt/qemu-rpi/bin/qemu-system-arm
+
+qemubindir=/opt/qemu-rpi/bin
+
+qemu=$qemubindir/qemu-system-arm
+qemu_img=$qemubindir/qemu-img
+
 fdisk=/sbin/sfdisk
 machine=raspi
 rpimount=$basedir/rpimount
@@ -58,7 +63,9 @@ fi
 $rpimount $image $tmpdir
 
 kernel=$tmpdir/boot/kernel.img
-#kernel=/home/jean/BA_Projets/git/linux/vmlinux
+
+cowimg=$(basename $image .bin)_$(date +%F-%H-%M-%S).bin
+$qemu_img create -f qcow2 -o backing_file=$image $cowimg
 
 $qemu \
     -kernel $kernel \
@@ -68,4 +75,4 @@ $qemu \
     -no-reboot \
     -serial stdio \
     -append "root=/dev/sda2 panic=1 rootfstype=ext4 rw $opts" \
-    -drive file=$image,if=sd,cache=unsafe,format=raw
+    -drive file=$cowimg,if=sd,cache=unsafe,format=qcow2
