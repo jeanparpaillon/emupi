@@ -15,7 +15,9 @@ function _cleanup {
 }
 
 function _usage {
-    echo "Usage: $0 /path/to/img mountpoint"
+    echo "Usage: $0 [-s,-h] /path/to/img mountpoint"
+    echo -e "\t-s:    start a shell"
+    echo -e "\t-h:    display help"
 }
 
 function _offset {
@@ -30,7 +32,23 @@ function _mount {
     $su mount -o offset=$(_offset 1),ro -t vfat $image $mountpoint/boot
 }
 
-trap _cleanup EXIT
+shell=
+while getopts ":s" opt; do
+    case $opt in
+	s)
+	    trap _cleanup EXIT
+	    shell=1
+	    shift $((OPTIND-1))
+	    ;;
+	h)
+	    _usage
+	    exit 0
+	    ;;
+	\?)
+	    _usage
+	    exit 1
+    esac
+done
 
 if test $# -lt 2; then
     _usage
@@ -57,6 +75,8 @@ fi
 
 _mount
 
-/bin/bash
+if test "x$shell" = "x1"; then
+    /bin/bash
+fi
 
 exit 0

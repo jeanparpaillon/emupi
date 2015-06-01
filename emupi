@@ -1,21 +1,22 @@
 #!/bin/bash -e
 
+basedir=$(cd $(dirname $0) && pwd)
 tmpdir=$(mktemp -d)
+qemu=/opt/qemu-rpi/bin/qemu-system-arm
+fdisk=/sbin/sfdisk
+machine=raspi
+rpimount=$basedir/rpimount
 
 function _cleanup {
-    mount | grep $tmpdir/boot && umount $tmpdir/boot || true
+    mount | grep -q $tmpdir/boot && \
+	umount $tmpdir/boot || true
+    mount | grep -q $tmpdir && \
+	umount $tmpdir || true
     rm -rf $tmpdir
 }
 
 function _usage {
     echo "Usage: $0 [-r] /path/to/image"
-}
-
-function _mount1 {
-    mkdir -p $tmpdir/boot
-    start=$(LANG=C sfdisk -l $image | tail -n +9 | head -1 | awk -e '{ print $2 }')
-    mount -o offset=$(( start*512 )),ro -t vfat $image $tmpdir/boot > /dev/null 2>&1 || \
-	echo "E: Error mounting /boot partition"
 }
 
 trap _cleanup EXIT
@@ -27,6 +28,7 @@ fi
 
 if test $# -lt 1; then
     _usage
+    exit 1
 fi
 
 opts=""
@@ -50,16 +52,20 @@ done
 image=$1
 if test ! -e $image; then
     echo "E: unknown image file " $image
+    exit 1
 fi
 
-_mount1
+$rpimount $image $tmpdir
 
-qemu-system-arm \
-    -kernel $tmpdir/boot/kernel.img \
+kernel=$tmpdir/boot/kernel.img
+#kernel=/home/jean/BA_Projets/git/linux/vmlinux
+
+$qemu \
+    -kernel $kernel \
     -cpu arm1176 \
     -m 256 \
-    -M versatilepb \
+    -machine $machine \
     -no-reboot \
     -serial stdio \
     -append "root=/dev/sda2 panic=1 rootfstype=ext4 rw $opts" \
-    -hda $image
+    -drive file=$image,if=sd,cache=unsafe,format=raw
