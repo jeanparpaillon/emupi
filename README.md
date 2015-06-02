@@ -1,6 +1,8 @@
 # emupi
 
-Suite of tools for running emulated raspberrypi
+Suite of tools for running emulated raspberrypi. All tools are finally
+wrapped into a Docker container, with patched qemu from
+https://github.com/Torlus/qemu/.
 
 ## emupi
 
@@ -8,7 +10,34 @@ Start qemu with a given raspberrypi image.
 
 ## rpimount
 
-Mount partitions of an raspberrypi image to a given directory and
-start a shell.
+```
+Usage: rpimount /path/to/img dir
+```
 
-Exit the shell to umount partitions.
+Mount partitions of an raspberrypi image to the given directory.
+Actually, only raspbian images are correctly detected (1st partition
+is /boot, 2nd is /).
+
+When option '-s', enter a shell after mounting. Partitions are
+unmounted when exiting the shell.
+
+## blkoffset
+
+```
+Usage: blkoffset /path/to/image X
+```
+
+Print the offset (in bytes) for accessing the Xth partition.
+
+## Dockerfile
+
+The Dockerfile describes a container with RaspberryPI patched version
+of qemu, allowing to run unmodified RPI kernel. The image must be
+mounted on /rpi.img.
+
+WARNING: due to the use of loopback devices, container must run
+privileged.
+
+```
+docker run --privileged -v /path/to/img:/rpi.img qemu-rpi
+```
