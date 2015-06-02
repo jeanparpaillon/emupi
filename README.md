@@ -4,6 +4,14 @@ Suite of tools for running emulated raspberrypi. All tools are finally
 wrapped into a Docker container, with patched qemu from
 https://github.com/Torlus/qemu/.
 
+## start.sh
+
+```
+Usage: start.sh container /path/to/img
+```
+
+Top-level wrapper.
+
 ## emupi
 
 Start qemu with a given raspberrypi image.
