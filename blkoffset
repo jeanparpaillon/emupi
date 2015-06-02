@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+
+mountpoint=
+fdisk=/sbin/sfdisk
+
+function _usage {
+    echo "Usage: $0 /path/to/img part_no"
+}
+
+if test $# -lt 2; then
+    _usage
+    exit 1
+fi
+
+if test ! -e $1; then
+    echo "E: Can not find image file: "$1
+    exit 1
+fi
+
+blocks=$(LANG=C $fdisk -l $1 -u S 2> /dev/null | awk '/^'$(echo $1 | sed -e 's#\/#\\\/#g')'/ { print $2 }' | tail -n +$2 | head -1)
+echo $(( blocks*512 ))
+
+exit 0

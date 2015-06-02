@@ -5,12 +5,9 @@ tmpdir=$(mktemp -d)
 
 qemubindir=/opt/qemu-rpi/bin
 
-qemu=$qemubindir/qemu-system-arm
-qemu_img=$qemubindir/qemu-img
-
 fdisk=/sbin/sfdisk
-machine=raspi
-rpimount=$basedir/rpimount
+
+export PATH=$basedir:$qemubindir:$PATH
 
 function _cleanup {
     mount | grep -q $tmpdir/boot && \
@@ -60,19 +57,19 @@ if test ! -e $image; then
     exit 1
 fi
 
-$rpimount $image $tmpdir
+rpimount $image $tmpdir
 
 kernel=$tmpdir/boot/kernel.img
 
 cowimg=$(basename $image .bin)_$(date +%F-%H-%M-%S).bin
-$qemu_img create -f qcow2 -o backing_file=$image $cowimg
+qemu-img create -f qcow2 -o backing_file=$image $cowimg
 
 # The magic: https://www.raspberrypi.org/forums/viewtopic.php?f=72&t=26561
-$qemu \
+qemu-system-arm \
     -kernel $kernel \
     -cpu arm1176 \
     -m 512 \
-    -machine $machine \
+    -machine raspi \
     -serial stdio \
     -no-reboot \
     -append "rw dma.dmachans=0x7f35 bcm2708_fb.fbwidth=1024 bcm2708_fb.fbheight=768 bcm2708.boardrev=0xf bcm2708.serial=0xcad0eedf smsc95xx.macaddr=B8:27:EB:D0:EE:DF sdhci-bcm2708.emmc_clock_freq=100000000 vc_mem.mem_base=0x1c000000 vc_mem.mem_size=0x20000000 dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline rootwait $opts" \

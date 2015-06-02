@@ -2,8 +2,10 @@
 
 set -e
 
+basedir=$(cd $(dirname $0) && pwd)
 mountpoint=
-fdisk=/sbin/sfdisk
+
+export PATH=$basedir:$PATH
 
 function _cleanup {
     if test -n "$mountpoint"; then
@@ -20,16 +22,10 @@ function _usage {
     echo -e "\t-h:    display help"
 }
 
-function _offset {
-    part=$1
-    blocks=$(LANG=C $fdisk -l $image | tail -n +$(( 8+part )) | head -1 | awk -e '{ print $2 }')
-    echo $(( blocks*512 ))
-}
-
 function _mount {
     i=$1
-    $su mount -o offset=$(_offset 2),ro -t ext4 $image $mountpoint
-    $su mount -o offset=$(_offset 1),ro -t vfat $image $mountpoint/boot
+    $su mount -o offset=$(blkoffset $image 2),ro -t ext4 $image $mountpoint
+    $su mount -o offset=$(blkoffset $image 1),ro -t vfat $image $mountpoint/boot
 }
 
 shell=
