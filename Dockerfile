@@ -11,7 +11,7 @@ RUN ( echo "deb http://cdn.debian.net/debian jessie main contrib non-free"; \
       echo "deb-src http://security.debian.org jessie/updates main contrib non-free" ) \
       > /etc/apt/sources.list && \
     apt-get update && \
-    apt-get -y install wget apt-utils build-essential git devscripts ca-certificates zip debhelper pkg-config x11-apps && libfdt-dev \
+    apt-get -y install wget apt-utils build-essential git devscripts ca-certificates zip debhelper pkg-config x11-apps libfdt-dev &&  \
     apt-get clean
 RUN git clone --depth 1 --branch rpi https://github.com/Torlus/qemu.git
 RUN cd qemu && git checkout `cat /root/qemu.lock`
